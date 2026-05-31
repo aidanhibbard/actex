@@ -372,7 +372,7 @@ await checkout.run(input)
 
 **`.run(input)`** — executes the sequence. Takes `Ti`, returns `Promise<Result<To>>`. Not curried — no `.run()()` or `.run()`-then-call.
 
-**`.use(plugin, ...plugins)`** — variadic plugins per call; multiple `.use()` calls append.
+**`.use(plugin, ...plugins)`** — variadic plugins per call; multiple `.use()` calls append. Only way to attach plugins — no global registration.
 
 **`Ti` / `To` inference** — updated on each `.step()`:
 
@@ -554,7 +554,7 @@ Each `.run(input)` calls **`EventBus.create()`**. Subscriptions are dropped when
         ├── public readonly listen   ← listenService
         ├── public readonly dispatch ← dispatchService
         ├── public readonly mount    ← mountPluginService
-        └── mount global / sequence plugins + builder .on() listeners
+        └── mount sequence plugins (.use) + builder .on() listeners
               └── dispatch(type, payload) → CustomEvent on target
                     └── dispatchService awaits async handlers after sync dispatch
 ```
@@ -721,9 +721,20 @@ Plugins **cannot** call `fail` or `skip`. Steps own control flow.
 
 ### Attach
 
+Plugins attach **only** via `.use()` on a sequence builder. No global registry, no `actex.*` namespace — named exports only (`step`, `defineSequence`, `definePlugin`).
+
 ```ts
 defineSequence().use(auditPlugin, timingPlugin).step(...).run(input)
-actex.registerPlugin(auditPlugin) // global default stack — mounted via EventBus.mount on every run
+```
+
+**Reuse across routes** — bake plugins into a shared builder in *your* app (not actex globals):
+
+```ts
+// server/utils/sequence.ts
+export const sequence = defineSequence().use(sentry, auditPlugin)
+
+// handler
+await sequence().step(myStep).run(input)
 ```
 
 ### Ad-hoc listeners — `.on()`
@@ -867,6 +878,8 @@ TypeMap also translates between Zod ↔ Valibot ↔ TypeBox and compiles all thr
 - No `s(z.object())` adapter wrappers
 - No Ajv / `@cfworker/json-schema` adapters in core (users can wrap JSON Schema → Standard Schema themselves)
 - No requirement that all steps in a sequence use the same library
+- No global plugin registry or `actex.registerPlugin()` — attach with `.use()` only
+- No `actex.*` namespace export — `step`, `defineSequence`, `definePlugin` as named exports
 
 ### Executor validation (internal)
 
@@ -985,7 +998,8 @@ type PluginDef = {
 } & Partial<Record<PluginEventName, PluginEventHandler>>
 
 type PluginEventHandler = (payload: PluginPayload) => void | Promise<void>
-declare const actex: { registerPlugin: (plugin: Plugin) => void }
+
+// Package exports: step, defineSequence, definePlugin — named only; no actex.* namespace
 ```
 
 ---
@@ -1002,7 +1016,7 @@ declare const actex: { registerPlugin: (plugin: Plugin) => void }
 
 **ctx.data** — single namespace; typed from input shape.
 
-**registerPlugin vs .use** — global vs sequence-scoped plugins; both mounted via `EventBus.mount`.
+**No global attach** — plugins and listeners are sequence-scoped (`.use()`, `.on()`). No `registerPlugin`, no `actex.*` object.
 
 **OOP + olallie mechanism** — internal `EventBus` class (`final`, not exported) wraps `EventTarget` + `CustomEvent`. Services (`listen`, `dispatch`, `mount`) are the class surface; one bus per `.run(input)`.
 
@@ -1012,7 +1026,7 @@ declare const actex: { registerPlugin: (plugin: Plugin) => void }
 ## Nitro (server)
 
 ```ts
-// server/configs/actex.ts
+// server/plugins/sentry.ts
 const sentry = definePlugin({
   name: 'sentry',
 
@@ -1036,7 +1050,7 @@ export default defineEventHandler(async (event) => {
     .run(await readBody(event))
 
   if (result.status === 'failed') {
-    throw createError({ statusCode: 422, message: result.error.message })
+    throw createError({ code: 500, message: result.error.message })
   }
 
   return result.context
