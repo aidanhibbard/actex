@@ -18,6 +18,8 @@ const defineWorkflow = () => Workflow.create()
 
 Prefer const over function to avoid hoisting
 
+Never use `eslint-disable`, `eslint-disable-next-line`, or comments to suppress lint rules. Fix the code or adjust eslint.config.ts with explicit project conventions.
+
 ## Directory structure
 
 Classes is what it is, and uses a barrel export
@@ -58,7 +60,7 @@ Spec is designed afer lib
 
 IE
 
-spec/lib/classes/action.spec.ts
+spec/lib/classes/step.spec.ts
 
 And so forth
 

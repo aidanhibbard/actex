@@ -2,7 +2,7 @@
   "name": "actex",
   "type": "module",
   "version": "0.0.0",
-  "description": "A starter for creating a TypeScript package.",
+  "description": "Typed sequence executor for business processes.",
   "author": "aidanhibbard",
   "license": "MIT",
   "homepage": "https://github.com/aidanhibbard/actex#readme",
@@ -34,6 +34,9 @@
     "vp:build": "vitepress build docs",
     "vp:preview": "vitepress preview docs"
   },
+  "dependencies": {
+    "@standard-schema/spec": "^1.0.0"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@eslint/json": "^1.2.0",
@@ -52,6 +55,7 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.4",
     "vitepress": "^2.0.0-alpha.17",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "zod": "^4.0.0"
   }
 }

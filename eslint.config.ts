@@ -15,6 +15,8 @@ export default defineConfig(
   {
     ignores: [
       '.agents/**',
+      'design.md',
+      'docs/**',
       'dist/**',
       'node_modules/**',
       'package-lock.json',
@@ -55,7 +57,7 @@ export default defineConfig(
     ignores: [...tsIgnores],
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        project: ['./tsconfig.json', './tsconfig.spec.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -86,12 +88,32 @@ export default defineConfig(
           format: ['StrictPascalCase'],
         },
         {
+          selector: 'typeParameter',
+          format: null,
+        },
+        {
           selector: 'objectLiteralProperty',
           format: ['strictCamelCase', 'UPPER_CASE'],
           leadingUnderscore: 'allow',
           filter: {
-            regex: '^\\d+$',
+            regex: '^(\\d+|~standard|(?:step|sequence):[a-z]+)$',
             match: false,
+          },
+        },
+        {
+          selector: 'objectLiteralProperty',
+          format: null,
+          filter: {
+            regex: '^(\\d+|~standard|(?:step|sequence):[a-z]+)$',
+            match: true,
+          },
+        },
+        {
+          selector: 'objectLiteralMethod',
+          format: null,
+          filter: {
+            regex: '^(?:step|sequence):[a-z]+$',
+            match: true,
           },
         },
       ],
@@ -117,6 +139,18 @@ export default defineConfig(
     plugins: { json },
     language: 'json/json',
     extends: ['json/recommended'],
+  },
+  {
+    files: ['lib/types/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+    },
+  },
+  {
+    files: ['lib/interfaces/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
+    },
   },
   {
     files: ['**/*.md'],
